@@ -54,6 +54,7 @@ def print_inferred_shape(net):
     print ou
 
 
+# O(max_layer_size + max_synapses_qty)
 def convolution_module(net, kernel_size, pad_size, filter_count, stride=(1, 1), work_space=2048, batch_norm=True, down_pool=False, up_pool=False, act_type="relu", convolution=True):
     if up_pool:
         net = mx.sym.Deconvolution(net, kernel=(2, 2), pad=(0, 0), stride=(2, 2), num_filter=filter_count, workspace = work_space)
@@ -80,7 +81,7 @@ def convolution_module(net, kernel_size, pad_size, filter_count, stride=(1, 1), 
 
     return net
 
-
+# O(max_layer_size + max_synapses_qty)
 def get_net_180():
     source = mx.sym.Variable("data")
     kernel_size = (3, 3)
@@ -127,6 +128,7 @@ def get_net_180():
     return mx.symbol.LogisticRegressionOutput(data=net, name='softmax')
 
 
+# O((max_layer_size + max_synapses_qty) * BASE_TRAIN_SEGMENT_DIR_files_qty)
 if __name__ == "__main__":
     network = get_net_180()
     for fold_no in range(0, settings.FOLD_COUNT):
@@ -137,6 +139,8 @@ if __name__ == "__main__":
 
         print "**** TRAINING FOLD " + str(fold_no) + " ****"
         devs = [mx.gpu(0)]
+
+        # O(max_layer_size + max_synapses_qty)
         train_model = mx.model.FeedForward(
             ctx=devs,
             symbol=network,

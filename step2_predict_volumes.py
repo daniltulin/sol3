@@ -36,7 +36,7 @@ current_debug_line = []
 global_dia_errors = []
 global_sys_errors = []
 
-
+# O(png_files_qty * max_file_png_size)
 def prepare_patient_images(patient_id, intermediate_crop=0):
     file_lst = []
     prefix = str(patient_id).rjust(4, '0')
@@ -65,7 +65,7 @@ def prepare_patient_images(patient_id, intermediate_crop=0):
         writer = csv.writer(f, delimiter='\t')
         writer.writerows(file_lst)
 
-
+# O(png_files_qty + max_file_lst_size)
 def predict_overlays_patient(patient_id, pred_model_name, pred_model_iter, save_transparents=False, threshold_value=-1):
     src_image_dir = helpers.get_pred_patient_img_dir(patient_id)
     overlay_dir = helpers.get_pred_patient_overlay_dir(patient_id)
@@ -154,6 +154,7 @@ def predict_overlays_patient(patient_id, pred_model_name, pred_model_iter, save_
             cv2.imwrite(transparent_overlay_dir + file_name, transparent_overlay)
 
 
+# O(file_size)
 def get_filename(file_path):
     #  Format of a file is : 0350_00000sax_02_10053_IM-6068-0002.png
     file_name = ntpath.basename(file_path)
@@ -161,7 +162,7 @@ def get_filename(file_path):
     file_name = parts[4].replace(".png", "")
     return file_name
 
-
+# O(file_size)
 def get_frame_no(file_path):
     #  Format of a file is : 0350_00000sax_02_10053_IM-6068-0002.png
     file_name = ntpath.basename(file_path)
@@ -169,7 +170,7 @@ def get_frame_no(file_path):
     frame_no = parts[2]
     return frame_no
 
-
+# O(1)
 def get_location_values(string_value):
     string_value = string_value.replace("[", "")
     string_value = string_value.replace("]", "")
@@ -177,7 +178,7 @@ def get_location_values(string_value):
     res = [float(x) for x in parts if x]
     return res
 
-
+# O(1)
 def compute_distance(current_value, previous_value):
     if str(previous_value) == "nan":
         return previous_value
@@ -196,12 +197,14 @@ def compute_distance(current_value, previous_value):
     updown = pandas.Series(delta.apply(lambda x: 0 if x == 0 else 1 if x > 0 else -1))
     return updown
 
-
+# O(pixel_series_qty)
 def interpolate_series(pixel_series, series_name):
     if not INTERPOLATE_SERIES:
         return pixel_series
     max_index = 0
     max_value = 0
+
+    # O(pixel_series_qty)
     for i in range(len(pixel_series)):
         if pixel_series[i] >= max_value:
             max_index = i
@@ -209,6 +212,8 @@ def interpolate_series(pixel_series, series_name):
 
     max_start = 0
     start_index = 0
+
+    # O(1)
     while start_index < max_index:
         if pixel_series[start_index] < max_start:
             next_index = start_index
@@ -225,6 +230,8 @@ def interpolate_series(pixel_series, series_name):
 
     max_end = 0
     end_index = len(pixel_series) - 1
+
+    # O(1)
     while end_index > max_index:
         if pixel_series[end_index] < max_end:
             next_index = end_index
@@ -241,7 +248,7 @@ def interpolate_series(pixel_series, series_name):
 
     return pixel_series
 
-
+# O(all_slice_data_size * log(all_slice_data_size) + overlays_qty * max_overlay_size + frames_qty * max_overlay_pixel_count)
 def count_pixels(patient_id, threshold, all_slice_data, model_name, threshold_value=-1):
     patient_slice_data = all_slice_data[all_slice_data["patient_id"] == patient_id].copy()
     patient_slice_data["slice_noloc"] = patient_slice_data["slice_no"].map(str) + "_" + patient_slice_data["slice_location"].map(str)
@@ -250,6 +257,7 @@ def count_pixels(patient_id, threshold, all_slice_data, model_name, threshold_va
     frame_count = len(frames)
 
     # find lowest common set of frames that are present in every slice
+    # O(all_slice_data_size * log(all_slice_data_size))
     for name, records in patient_slice_data.groupby("slice_noloc"):
         slice_frames = records["frame_no"].unique()
         if (len(frames) / 2) >= len(slice_frames):
@@ -279,6 +287,7 @@ def count_pixels(patient_id, threshold, all_slice_data, model_name, threshold_va
         frame_pixel_series[str(frame_no).rjust(2, '0')] = [-1] * len(slices)
         frame_confidence_series[str(frame_no).rjust(2, '0')] = [-1] * len(slices)
 
+    # O(overlays_qty * max_overlay_size)
     overlay_paths = helpers.get_patient_overlays(patient_id)
     for overlay_path in overlay_paths:
         overlay_img = cv2.imread(overlay_path, cv2.IMREAD_GRAYSCALE)
@@ -337,8 +346,11 @@ def count_pixels(patient_id, threshold, all_slice_data, model_name, threshold_va
         print "slice_dist != slice_dist2 (" + str(deltas) + ")"
 
     data_frame["time"] = patient_slice_data_frame1["time"].values
+
+    # O(frames_qty * max_overlay_pixel_count)
     for frame_no in frames:
         frame_str = str(frame_no).rjust(2, '0')
+        # O(overlay_pixel_count)
         interpolated_series = interpolate_series(frame_pixel_series[frame_str], frame_str)
         data_frame["fr_" + frame_str] = interpolated_series
 
@@ -383,7 +395,7 @@ def copy_diasys_images_and_overlays(patient_id, dia_frame, sys_frame, target_ima
             file_name = ntpath.basename(image_path)
             shutil.copyfile(image_path, target_image_dir + file_name)
 
-
+# O(distance_series + pixel_series_qty)
 def compute_volumne_frustum(pixel_series, distance_series, low_confidence_calc=False):
     val_list = pixel_series.values.tolist()
     dist_list = distance_series.fillna(10).values.tolist()
@@ -441,7 +453,7 @@ def compute_inconfidence_features(conf_values_serie):
 
     return res
 
-
+# O(areas_model_size)
 def compute_volumes(patient_id, model_name, debug_info=False):
     patient_dir = helpers.get_pred_patient_dir(patient_id)
     min_areas = pandas.read_csv(patient_dir + "\\areas_" + model_name + ".csv", sep=";")
@@ -499,6 +511,8 @@ def compute_volumes(patient_id, model_name, debug_info=False):
 
     dia_frame = diastole_col.replace("fr_", "")
     sys_frame = systole_col.replace("fr_", "")
+
+    # O(min_areas_selection)
     diastole_vol, dia_max_slice_val = compute_volumne_frustum(min_areas_selection["diastole"], min_areas_selection[dist_col])
     systole_vol, sys_max_slice_val = compute_volumne_frustum(min_areas_selection["systole"], min_areas_selection[dist_col])
 
@@ -507,7 +521,7 @@ def compute_volumes(patient_id, model_name, debug_info=False):
 
     return diastole_vol, systole_vol, low_conf_diastole_vol, low_conf_systole_vol, dia_frame, sys_frame, dia_max_slice_val, sys_max_slice_val
 
-
+# O(pred_data_size)
 def evaluate_volume(patient_id, diastole_vol, systole_vol, pred_model_name, scale, lowconf_dia_vol, lowconf_sys_vol, dia_frame, sys_frame, dia_max_slice, sys_max_slice, debug_info=False):
     diastole_vol = round(diastole_vol, 1)
     systole_vol = round(systole_vol, 1)
@@ -560,7 +574,7 @@ def evaluate_volume(patient_id, diastole_vol, systole_vol, pred_model_name, scal
     pred_data.to_csv(settings.BASE_DIR + "prediction_raw_" + MODEL_NAME + ".csv", sep=";", index=False)
     return err_dia, err_sys
 
-
+# O(png_files_qty * (file_png + max_file_lst) + all_slice_data * log(all_slice_data) + (overlays_qty + frames_qty) * overlay + areas_model + pred_data)
 def predict_patient(patient_id, all_slice_data, pred_model_name, pred_model_iter, debug_info=False):
     if not os.path.exists(settings.BASE_DIR + PREDICTION_FILENAME):
         shutil.copyfile(settings.BASE_DIR + "train_enriched.csv", settings.BASE_DIR + PREDICTION_FILENAME)
@@ -572,15 +586,20 @@ def predict_patient(patient_id, all_slice_data, pred_model_name, pred_model_iter
     intermediate_crop = 0
     round_no = 0
     while not done:
+
+        # O(png_files_qty * max_file_png_size)
         if PROCESS_IMAGES:
             prepare_patient_images(patient_id, intermediate_crop=intermediate_crop)
 
+        # O(png_files_qty + max_file_lst_size)
         if SEGMENT_IMAGES:
             predict_overlays_patient(patient_id, pred_model_name, pred_model_iter, save_transparents=True, threshold_value=-1)  # 95 was best th
 
+        # O(all_slice_data * log(all_slice_data) + (overlays_qty + frames_qty) * overlay_size)
         if COUNT_PIXELS:
             pixel_frame = count_pixels(patient_id, 0, all_slice_data, pred_model_name, threshold_value=PIXEL_THRESHOLD)
 
+        # O(areas_model_size)
         if COMPUTE_VOLUMES:
             diastole_vol, systole_vol, diastole_lowconf_vol, systole_lowconf_vol, diastole_frame, systole_frame, diastole_max, systole_max = compute_volumes(patient_id, pred_model_name, debug_info=debug_info)
             if SCALE_SIZE is not None:
@@ -602,6 +621,7 @@ def predict_patient(patient_id, all_slice_data, pred_model_name, pred_model_iter
             current_debug_line.append(str(round(diastole_vol, 2)))
             current_debug_line.append(str(round(systole_vol, 2)))
 
+        # O(pred_data_size)
         err_dia, err_sys = evaluate_volume(patient_id, diastole_vol, systole_vol, pred_model_name, scale, diastole_lowconf_vol, systole_lowconf_vol, diastole_frame, systole_frame, diastole_max, systole_max, debug_info=debug_info)
         if debug_info:
             print "\t".join(map(lambda x: str(x).rjust(10), current_debug_line))
@@ -621,7 +641,7 @@ def predict_patient(patient_id, all_slice_data, pred_model_name, pred_model_iter
 
     return None
 
-
+# O(ranges * (png_files_qty * (file_png + max_file_lst) + slice_data * log(slice_data) + (overlays_qty + frames_qty) * overlay + areas_model + pred_data))
 if __name__ == "__main__":
     slice_data = pandas.read_csv(settings.BASE_DIR + "dicom_data_enriched.csv", sep=";")
     current_debug_line = ["patient", "dia_col", "sys_col", "dia_vol", "sys_vol", "dia_err", "sys_err"]
@@ -645,6 +665,7 @@ if __name__ == "__main__":
         range_end = model_range[3]
         print "Predicting model " + model_name
         for i in range(range_start, range_end):
+            # O(png_files_qty * (file_png + max_file_lst) + slice_data * log(slice_data) + (overlays_qty + frames_qty) * overlay + areas_model + pred_data)
             predict_patient(i, slice_data, model_name, model_iter, debug_info=True)
             if len(global_dia_errors) % 20 == 0:
                 current_debug_line = ["avg", "", "", "", "", round(sum(global_dia_errors) / len(global_dia_errors), 2), round(sum(global_sys_errors) / len(global_sys_errors), 2)]

@@ -4,6 +4,8 @@ import numpy
 
 
 class DicomWrapper:
+
+    # O(file_size)
     def __init__(self, file_dir, file_name):
         self.raw_file = dicom.read_file(file_dir + file_name)
         self.file_name = file_name
@@ -86,6 +88,7 @@ class DicomWrapper:
     def in_plane_encoding_direction(self):
         return self.get_value("InPlanePhaseEncodingDirection")
 
+    # O(1)
     def get_location(self):
         image_center2d = self.spacing * (numpy.array([self.columns, self.rows]) - numpy.ones(2)) / 2.
         image_center3d = numpy.dot(image_center2d, numpy.reshape(self.image_orientation_patient, (2, 3)))

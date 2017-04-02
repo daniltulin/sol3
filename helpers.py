@@ -72,7 +72,7 @@ def get_files(scan_dir, search_pattern):
     file_paths = glob.glob(scan_dir + search_pattern)
     return file_paths
 
-
+# O(sax_files_qty)
 def enumerate_sax_files(patient_ids=None, filter_slice_type="sax"):
     for sub_dir in ["train", "validate", "test"]:
         for root, _, files in os.walk(settings.BASE_DIR + "\\data_kaggle\\" + sub_dir):

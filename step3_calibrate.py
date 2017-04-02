@@ -9,6 +9,7 @@ MODEL_NAME = settings.MODEL_NAME
 SRC_PATH = settings.BASE_DIR + "prediction_raw_" + MODEL_NAME + ".csv"
 PREDICT_RATIO = False
 
+# O(prediction_raw_model)
 pred_data = pandas.read_csv(SRC_PATH, sep=";")
 print str(len(pred_data)) + " rows"
 
@@ -23,6 +24,8 @@ fold_ranges = [
 ]
 
 ext = ""
+
+#O(GradientBoostingRegressor_assymptotic)
 for dia_sys in ["dia" + ext, "sys" + ext]:
     new_predictions = []
     real_value_col = "Diastole" if dia_sys.startswith("dia") else "Systole"

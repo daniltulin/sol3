@@ -8,6 +8,7 @@ import scipy
 import scipy.misc
 import cv2
 
+# O(sax_files_qty)
 def create_csv_data():
     print "Creating csv file from dicom data"
     row_no = 0
@@ -83,7 +84,7 @@ def get_age_years(age_string):
         res = round(float(age_string) / 52., 2)
     return res
 
-
+# O(sax_files_qty * log(sax_files_qty))
 def enrich_dicom_csvdata():
     print "Enriching dicom csv data with extra columns and stats"
     dicom_data = pandas.read_csv(settings.BASE_DIR + "dicom_data.csv", sep=";")
@@ -118,7 +119,7 @@ def enrich_dicom_csvdata():
     dicom_data = dicom_data[dicom_data["frame_no"] == 1]
     dicom_data.to_csv(settings.BASE_DIR + "dicom_data_enriched_frame1.csv", sep=";")
 
-
+# O(sax_files_qty * validate_file_size)
 def enrich_traindata():
     print "Enriching train data with extra columns and stats"
     train_data = pandas.read_csv(settings.BASE_DIR + "train_validate.csv", sep=",")
@@ -150,7 +151,7 @@ def get_slice_type(dir_name):
     res = parts[len(parts) - 1]
     return res
 
-
+# O(1)
 def get_square_crop(img, base_size=256, crop_size=256):
     res = img
     height, width = res.shape
@@ -173,7 +174,7 @@ def get_square_crop(img, base_size=256, crop_size=256):
     res = res[crop_y_start:(crop_y_start + crop_size), crop_x_start:(crop_x_start + crop_size)]
     return res
 
-
+# O(sax_files_qty * png_files_qty)
 def convert_sax_images(rescale=True, base_size=256, crop_size=256):
     target_dir = settings.BASE_PREPROCESSEDIMAGES_DIR
     print "Deleting old files.."
@@ -217,9 +218,14 @@ def convert_sax_images(rescale=True, base_size=256, crop_size=256):
         cv2.imwrite(img_path, cl_img)
 
 
+# O(sax_files_qty * (png_files_qty + log(sax_files_qty) + validate_file_size))
 if __name__ == "__main__":
+    # O(sax_files_qty * png_files_qty)
     convert_sax_images(rescale=True, base_size=256, crop_size=256)
+    # O(sax_files_qty)
     create_csv_data()
+    # O(sax_files_qty * log(sax_files_qty))
     enrich_dicom_csvdata()
+    # O(sax_files_qty * validate_file_size)
     enrich_traindata()
     print "Done"
