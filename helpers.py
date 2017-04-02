@@ -11,7 +11,7 @@ from scipy.ndimage.filters import gaussian_filter
 random.seed(1301)
 numpy.random.seed(1301)
 
-
+# O(1)
 def get_pred_patient_dir(patient_id):
     prefix = str(patient_id).rjust(4, '0')
     res = settings.PATIENT_PRED_DIR + prefix + "\\"
@@ -19,36 +19,43 @@ def get_pred_patient_dir(patient_id):
     return res
 
 
+# O(1)
 def get_pred_patient_img_dir(patient_id):
     res = get_pred_patient_dir(patient_id) + "all_images\\"
     create_dir_if_not_exists(res)
     return res
 
 
+# O(1)
 def get_pred_patient_overlay_dir(patient_id):
     res = get_pred_patient_dir(patient_id) + "predicted_overlays\\"
     create_dir_if_not_exists(res)
     return res
 
 
+# O(1)
 def get_pred_patient_transparent_overlay_dir(patient_id):
     res = get_pred_patient_dir(patient_id) + "predicted_overlays_transparent\\"
     create_dir_if_not_exists(res)
     return res
 
 
+# O(1)
 def get_patient_images(patient_id):
     return get_patient_files(patient_id, "images")
 
 
+# O(1)
 def get_patient_overlays(patient_id):
     return get_patient_files(patient_id, "overlays")
 
 
+# O(1)
 def get_patient_transparent_overlays(patient_id):
     return get_patient_files(patient_id, "transparent_overlays")
 
 
+# O(1)
 def get_patient_files(patient_id, file_type, extension = ".png"):
     src_dir = get_pred_patient_dir(patient_id)
     if file_type == "images":
@@ -62,17 +69,19 @@ def get_patient_files(patient_id, file_type, extension = ".png"):
     return file_paths
 
 
+# O(files_qty)
 def delete_files(target_dir, search_pattern):
     files = glob.glob(target_dir + search_pattern)
     for f in files:
         os.remove(f)
 
-
+# O(files_qty)
 def get_files(scan_dir, search_pattern):
     file_paths = glob.glob(scan_dir + search_pattern)
     return file_paths
 
 
+# O(train_validate_test_files_qty * max_train_validate_test_file)
 def enumerate_sax_files(patient_ids=None, filter_slice_type="sax"):
     for sub_dir in ["train", "validate", "test"]:
         for root, _, files in os.walk(settings.BASE_DIR + "\\data_kaggle\\" + sub_dir):
@@ -95,7 +104,7 @@ def enumerate_sax_files(patient_ids=None, filter_slice_type="sax"):
                     dicom_data = DicomWrapper(root + "\\", file_name)
                     yield dicom_data
 
-
+# O(files_qty * max_file + img_size^2)
 def compute_mean_image(src_dir, wildcard, img_size):
     mean_image = numpy.zeros((img_size, img_size), numpy.float32)
     src_files = glob.glob(src_dir + wildcard)
@@ -113,7 +122,7 @@ def compute_mean_image(src_dir, wildcard, img_size):
     res = mean_image / float(img_count)
     return res
 
-
+# O(files_qty * max_file)
 def compute_mean_pixel_values_dir(src_dir, wildcard, channels):
     src_files = glob.glob(src_dir + wildcard)
     random.shuffle(src_files)
@@ -129,7 +138,7 @@ def compute_mean_pixel_values_dir(src_dir, wildcard, channels):
     print res
     return res
 
-
+# O(src_image)
 def replace_color(src_image, from_color, to_color):
     data = numpy.array(src_image)   # "data" is a height x width x 4 numpy array
     r1, g1, b1 = from_color  # Original value
@@ -144,6 +153,8 @@ def replace_color(src_image, from_color, to_color):
 
 ELASTIC_INDICES = None  # needed to make it faster to fix elastic deformation per epoch.
 
+
+# O(image)
 def elastic_transform(image, alpha, sigma, random_state=None):
     global ELASTIC_INDICES
     shape = image.shape
@@ -159,6 +170,7 @@ def elastic_transform(image, alpha, sigma, random_state=None):
     return map_coordinates(image, ELASTIC_INDICES, order=1).reshape(shape)
 
 
+# O(sax_image)
 def prepare_cropped_sax_image(sax_image, clahe=True, intermediate_crop=0, rotate=0):
     if rotate != 0:
         rot_mat = cv2.getRotationMatrix2D((sax_image.shape[0] / 2, sax_image.shape[0] / 2), rotate, 1)
@@ -177,7 +189,7 @@ def prepare_cropped_sax_image(sax_image, clahe=True, intermediate_crop=0, rotate
         res = clahe.apply(res)
     return res
 
-
+# O(src_overlay + target_size^2)
 def prepare_overlay_image(src_overlay_path, target_size, antialias=False):
     if os.path.exists(src_overlay_path):
         overlay = cv2.imread(src_overlay_path)
@@ -193,7 +205,7 @@ def prepare_overlay_image(src_overlay_path, target_size, antialias=False):
         overlay = numpy.zeros((target_size, target_size), dtype=numpy.uint8)
     return overlay
 
-
+# O(1)
 def create_dir_if_not_exists(target_dir):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)

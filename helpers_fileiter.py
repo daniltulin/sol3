@@ -13,6 +13,7 @@ random.seed(1301)
 
 
 class FileIter(DataIter):
+    # O(mean_image + flist_file + batch_size * (max_img + max_label))
     def __init__(self, root_dir, flist_name,
                  regress_overlay=True,
                  cut_off_size=None,
@@ -53,10 +54,17 @@ class FileIter(DataIter):
         self.num_data = len(open(self.flist_name, 'r').readlines())
         #self.num_data = 100
         self.cursor = -1
+
+        # O(flist_file)
         self.read_lines()
+
+        # O(batch_size * (max_img + max_label))
         self.data, self.label = self._read()
+
+        # O(flist_file)
         self.reset()
 
+    # O(batch_size * (max_img + max_label))
     def _read(self):
         """get two list, each list contains two elements: name and nd.array value"""
         data = {}
@@ -81,6 +89,7 @@ class FileIter(DataIter):
         res = list(data.items()), list(label.items())
         return res
 
+    # O(img + label)
     def _read_img(self, img_name, label_name):
         img_path = os.path.join(self.root_dir, img_name)
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE).astype(float)  # Image.open(img_path).convert("L")
@@ -161,6 +170,7 @@ class FileIter(DataIter):
 
         return img, label
 
+    # O(data)
     @property
     def provide_data(self):
         """The name and shape of data provided by this iterator"""
@@ -168,6 +178,7 @@ class FileIter(DataIter):
         # print "data : " + str(res)
         return res
 
+    # O(label)
     @property
     def provide_label(self):
         """The name and shape of label provided by this iterator"""
@@ -175,6 +186,7 @@ class FileIter(DataIter):
         print "label : " + str(res)
         return res
 
+    # O(flist_file)
     def reset(self):
         self.cursor = -1
         self.read_lines()
@@ -183,9 +195,11 @@ class FileIter(DataIter):
         self.image_files = []
         self.epoch += 1
 
+    # O(1)
     def getpad(self):
         return 0
 
+    # O(flist_file)
     def read_lines(self):
         self.current_line_no = -1;
         with open(self.flist_name, 'r') as f:
@@ -193,11 +207,12 @@ class FileIter(DataIter):
             if self.shuffle:
                 self.random.shuffle(self.file_lines)
 
+    # O(1)
     def get_line(self):
         self.current_line_no += 1
         return self.file_lines[self.current_line_no]
 
-
+    # O(1)
     def iter_next(self):
         self.cursor += self.batch_size
         if self.cursor < self.num_data:
@@ -205,10 +220,12 @@ class FileIter(DataIter):
         else:
             return False
 
+    # O(1)
     def eof(self):
         res = self.cursor >= self.num_data
         return res
 
+    # O(batch_size * (max_img + max_label))
     def next(self):
         """return one dict which contains "data" and "label" """
         if self.iter_next():

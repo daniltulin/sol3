@@ -8,6 +8,7 @@ import scipy
 import scipy.misc
 import cv2
 
+# O(sax_files_qty * max_sax_file)
 def create_csv_data():
     print "Creating csv file from dicom data"
     row_no = 0
@@ -48,7 +49,7 @@ def create_csv_data():
                 str(round(dicom_data.image_orientation_patient[5], 2))
             ])
 
-
+# O(current_value)
 def up_down(current_value, previous_value):
     # previous_value = previous_value.fillna(-99999)
     delta = current_value - previous_value
@@ -56,20 +57,20 @@ def up_down(current_value, previous_value):
     updown = pandas.Series(delta.apply(lambda x: 0 if x == 0 else 1 if x > 0 else -1))
     return updown
 
-
+# O(current_value)
 def slice_delta(current_value, next_value):
     # previous_value = previous_value.fillna(-99999)
     delta = current_value - next_value
     delta = delta.fillna(999)
     return delta
 
-
+# O(current_value)
 def count_small_deltas(current_value):
     # previous_value = previous_value.fillna(-99999)
     res = len(current_value[abs(current_value) < 2])
     return res
 
-
+# O(age_string)
 def get_age_years(age_string):
     res = 0
     if "Y" in age_string:
@@ -83,7 +84,7 @@ def get_age_years(age_string):
         res = round(float(age_string) / 52., 2)
     return res
 
-
+# O(sax_files_qty * log(sax_files_qty)), dicom_data ~ sax_files_qty
 def enrich_dicom_csvdata():
     print "Enriching dicom csv data with extra columns and stats"
     dicom_data = pandas.read_csv(settings.BASE_DIR + "dicom_data.csv", sep=";")
@@ -118,7 +119,7 @@ def enrich_dicom_csvdata():
     dicom_data = dicom_data[dicom_data["frame_no"] == 1]
     dicom_data.to_csv(settings.BASE_DIR + "dicom_data_enriched_frame1.csv", sep=";")
 
-
+# O(sax_files_qty * log(sax_files_qty) + sax_files_qty * train_validate), dicom_data_enriched_frame1 ~ dicom_data ~ sax_files_qty
 def enrich_traindata():
     print "Enriching train data with extra columns and stats"
     train_data = pandas.read_csv(settings.BASE_DIR + "train_validate.csv", sep=",")
@@ -138,19 +139,19 @@ def enrich_traindata():
 
     enriched_traindata.to_csv(settings.BASE_DIR + "train_enriched.csv", sep=";")
 
-
+# O(1)
 def get_patient_id(dir):
     parts = dir.split('\\')
     res = parts[len(parts) - 3]
     return res
 
-
+# O(1)
 def get_slice_type(dir_name):
     parts = dir_name.split('\\')
     res = parts[len(parts) - 1]
     return res
 
-
+# O(img)
 def get_square_crop(img, base_size=256, crop_size=256):
     res = img
     height, width = res.shape
@@ -173,7 +174,7 @@ def get_square_crop(img, base_size=256, crop_size=256):
     res = res[crop_y_start:(crop_y_start + crop_size), crop_x_start:(crop_x_start + crop_size)]
     return res
 
-
+# O(sax_files_qty * max_sax_file * max_img)
 def convert_sax_images(rescale=True, base_size=256, crop_size=256):
     target_dir = settings.BASE_PREPROCESSEDIMAGES_DIR
     print "Deleting old files.."
@@ -217,9 +218,14 @@ def convert_sax_images(rescale=True, base_size=256, crop_size=256):
         cv2.imwrite(img_path, cl_img)
 
 
+# O(sax_files_qty * (max_sax_file * max_img + log(sax_files_qty) + train_validate))
 if __name__ == "__main__":
+    # O(sax_files_qty * max_sax_file * max_img)
     convert_sax_images(rescale=True, base_size=256, crop_size=256)
+    # O(sax_files_qty * max_sax_file)
     create_csv_data()
+    # O(sax_files_qty * log(sax_files_qty))
     enrich_dicom_csvdata()
+    # O(sax_files_qty * (log(sax_files_qty) + train_validate))
     enrich_traindata()
     print "Done"

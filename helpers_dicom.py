@@ -4,6 +4,8 @@ import numpy
 
 
 class DicomWrapper:
+
+    # O(file_size)
     def __init__(self, file_dir, file_name):
         self.raw_file = dicom.read_file(file_dir + file_name)
         self.file_name = file_name
@@ -11,81 +13,100 @@ class DicomWrapper:
         loc2 = self.slice_location
         # print str(loc2) + " - " + str(loc1)
 
+    # O(1)
     def get_value(self, name):
         res = self.raw_file.data_element(name).value
         return res
 
+    # O(1)
     @property
     def columns(self):
         res = self.get_value("Columns")
         return res
 
+    # O(1)
     @property
     def rows(self):
         res = self.get_value("Rows")
         return res
 
+    # O(1)
     @property
     def spacing(self):
         res = self.get_value("PixelSpacing")
         return res
 
+    # O(1)
     @property
     def slice_location(self):
         return self.get_value("SliceLocation")
 
+    # O(1)
     @property
     def create_time(self):
         return str(int(round(float(self.get_value("InstanceCreationTime")))) / 10).rjust(5, '0')
 
+    # O(1)
     @property
     def slice_thickness(self):
         return self.get_value("SliceThickness")
 
+    # O(1)
     @property
     def sequence_name(self):
         return self.get_value("SequenceName")
 
+    # O(1)
     @property
     def image_position(self):
         return self.get_value("ImagePositionPatient")
 
+    # O(1)
     @property
     def series_number(self):
         return self.get_value("SeriesNumber")
 
+    # O(1)
     @property
     def series_time(self):
         return self.get_value("SeriesTime")
 
+    # O(1)
     @property
     def patient_id(self):
         return self.get_value("PatientID")
 
+    # O(1)
     @property
     def series_description(self):
         return self.get_value("SeriesDescription")
 
+    # O(1)
     @property
     def image_orientation_patient(self):
         return self.get_value("ImageOrientationPatient")
 
+    # O(1)
     @property
     def image_position_patient(self):
         return self.get_value("ImagePositionPatient")
 
+    # O(1)
     @property
     def flip_angle(self):
         return self.get_value("FlipAngle")
 
+    # O(1)
     @property
     def instance_number(self):
         return self.get_value("InstanceNumber")
 
+    # O(1)
     @property
     def in_plane_encoding_direction(self):
         return self.get_value("InPlanePhaseEncodingDirection")
 
+    # O(1)
     def get_location(self):
         image_center2d = self.spacing * (numpy.array([self.columns, self.rows]) - numpy.ones(2)) / 2.
         image_center3d = numpy.dot(image_center2d, numpy.reshape(self.image_orientation_patient, (2, 3)))
@@ -94,15 +115,18 @@ class DicomWrapper:
         res = numpy.round(center[direction], 2)
         return center
 
+    # O(1)
     @property
     def pixel_array(self):
         img = self.raw_file.pixel_array.astype(float) / numpy.max(self.raw_file.pixel_array)
         return img
 
+    # O(1)
     def get_csv(self):
         res = [self.series_number, self.get_value("InstanceNumber"), self.flip_angle, self.series_description, self.series_time]
         return res
 
+    # O(1)
     def dir(self):
         self.raw_file.dir()
 
