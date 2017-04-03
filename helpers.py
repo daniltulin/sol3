@@ -80,7 +80,6 @@ def get_files(scan_dir, search_pattern):
     file_paths = glob.glob(scan_dir + search_pattern)
     return file_paths
 
-
 # O(train_validate_test_files_qty * max_train_validate_test_file)
 def enumerate_sax_files(patient_ids=None, filter_slice_type="sax"):
     for sub_dir in ["train", "validate", "test"]:
